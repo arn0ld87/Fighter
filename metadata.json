@@ -1,0 +1,6 @@
+{
+  "name": "Triple Threat Arena Simulator",
+  "description": "An interactive, cinematic 3D fight simulator featuring three legendary fighters clashing in a high-octane triple-threat match in a brightly lit sports arena, complete with dynamic cameras and AI commentary.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

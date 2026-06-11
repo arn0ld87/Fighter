@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Triple Threat Arena Simulator Icon">
+  <title>Triple Threat Arena Simulator Icon</title>
+  <desc>Square icon variant featuring the octagon ring emblem with three fighter silhouettes.</desc>
+
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1a1033"/>
+      <stop offset="70%" stop-color="#0a0518"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <radialGradient id="floorGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1f1d2c"/>
+      <stop offset="100%" stop-color="#0a0814"/>
+    </radialGradient>
+
+    <linearGradient id="spotRed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(239, 68, 68, 0.55)"/>
+      <stop offset="100%" stop-color="rgba(239, 68, 68, 0)"/>
+    </linearGradient>
+    <linearGradient id="spotBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(59, 130, 246, 0.55)"/>
+      <stop offset="100%" stop-color="rgba(59, 130, 246, 0)"/>
+    </linearGradient>
+    <linearGradient id="spotAmber" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(245, 158, 11, 0.6)"/>
+      <stop offset="100%" stop-color="rgba(245, 158, 11, 0)"/>
+    </linearGradient>
+
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="bigGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="512" height="512" rx="80" ry="80" fill="url(#bgGrad)"/>
+
+  <!-- Corner brackets -->
+  <g stroke="#fbbf24" stroke-width="3" fill="none" opacity="0.7">
+    <polyline points="30,30 30,70 70,70"/>
+    <polyline points="482,30 482,70 442,70"/>
+    <polyline points="30,482 30,442 70,442"/>
+    <polyline points="482,482 482,442 442,442"/>
+  </g>
+
+  <!-- Volumetric spotlights -->
+  <g opacity="0.7" filter="url(#bigGlow)">
+    <polygon points="100,60 130,60 70,420 40,420" fill="url(#spotRed)"/>
+    <polygon points="240,60 272,60 270,420 242,420" fill="url(#spotAmber)"/>
+    <polygon points="382,60 412,60 472,420 442,420" fill="url(#spotBlue)"/>
+  </g>
+
+  <!-- Spotlight bulbs -->
+  <g filter="url(#glow)">
+    <circle cx="115" cy="60" r="8" fill="#ef4444"/>
+    <circle cx="256" cy="60" r="9" fill="#f59e0b"/>
+    <circle cx="397" cy="60" r="8" fill="#3b82f6"/>
+  </g>
+
+  <!-- Title at top -->
+  <g transform="translate(256 110)">
+    <text x="0" y="0" text-anchor="middle" font-family="'Arial Black', sans-serif" font-size="36" font-weight="900" fill="url(#titleGrad)" letter-spacing="3" filter="url(#glow)">
+      TRIPLE
+    </text>
+    <text x="0" y="34" text-anchor="middle" font-family="'Arial Black', sans-serif" font-size="36" font-weight="900" fill="url(#titleGrad)" letter-spacing="3" filter="url(#glow)">
+      THREAT
+    </text>
+  </g>
+
+  <!-- Octagon ring center -->
+  <g transform="translate(256 320)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="85" rx="170" ry="40" fill="#000000" opacity="0.6"/>
+
+    <!-- Octagon floor (isometric perspective) -->
+    <g transform="scale(1, 0.5)">
+      <polygon points="138,-57 57,-138 -57,-138 -138,-57 -138,57 -57,138 57,138 138,57"
+               fill="url(#floorGrad)" stroke="url(#ringGrad)" stroke-width="4"/>
+    </g>
+
+    <!-- Inner mat boundary -->
+    <g transform="scale(0.55, 0.3)">
+      <polygon points="138,-57 57,-138 -57,-138 -138,-57 -138,57 -57,138 57,138 138,57"
+               fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.5"/>
+    </g>
+
+    <!-- Center logo text -->
+    <text x="0" y="3" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" fill="#fbbf24" opacity="0.5" letter-spacing="2">CHAMPIONSHIP</text>
+
+    <!-- Octagon fence pillars -->
+    <g stroke="#fbbf24" stroke-width="3" opacity="0.9" filter="url(#glow)">
+      <line x1="0" y1="-138" x2="0" y2="-69"/>
+      <line x1="97.6" y1="-97.6" x2="48.8" y2="-48.8"/>
+      <line x1="138" y1="0" x2="69" y2="0"/>
+      <line x1="97.6" y1="97.6" x2="48.8" y2="48.8"/>
+      <line x1="0" y1="138" x2="0" y2="69"/>
+      <line x1="-97.6" y1="97.6" x2="-48.8" y2="48.8"/>
+      <line x1="-138" y1="0" x2="-69" y2="0"/>
+      <line x1="-97.6" y1="-97.6" x2="-48.8" y2="-48.8"/>
+    </g>
+
+    <!-- Top pillar lights -->
+    <g fill="#fef3c7" filter="url(#glow)">
+      <circle cx="0" cy="-138" r="3"/>
+      <circle cx="97.6" cy="-97.6" r="3"/>
+      <circle cx="138" cy="0" r="3"/>
+      <circle cx="97.6" cy="97.6" r="3"/>
+      <circle cx="0" cy="138" r="3"/>
+      <circle cx="-97.6" cy="97.6" r="3"/>
+      <circle cx="-138" cy="0" r="3"/>
+      <circle cx="-97.6" cy="-97.6" r="3"/>
+    </g>
+  </g>
+
+  <!-- 3 Fighter silhouettes -->
+  <g transform="translate(256 320)">
+    <!-- Fighter 1 (Left - Trump - Red) -->
+    <g transform="translate(-100 -10)">
+      <ellipse cx="0" cy="50" rx="22" ry="5" fill="#000000" opacity="0.6"/>
+      <rect x="-7" y="15" width="6" height="35" fill="#dc2626" rx="1"/>
+      <rect x="1" y="15" width="6" height="35" fill="#dc2626" rx="1"/>
+      <rect x="-11" y="-25" width="22" height="40" fill="#1e3a8a" rx="3"/>
+      <rect x="-1.5" y="-20" width="3" height="25" fill="#ef4444"/>
+      <circle cx="0" cy="-35" r="9" fill="#ffa254" stroke="#fbbf24" stroke-width="0.5"/>
+      <path d="M -9,-37 Q 0,-46 9,-37 L 9,-35 Q 0,-43 -9,-35 Z" fill="#fbbf24"/>
+      <rect x="7" y="-33" width="5" height="22" fill="#1e3a8a" rx="1" transform="rotate(-30 9.5 -22)"/>
+      <circle cx="17" cy="-46" r="4" fill="#dc2626"/>
+      <circle cx="-10" cy="-10" r="4" fill="#dc2626"/>
+    </g>
+
+    <!-- Fighter 3 (Center - Kim - Massive) -->
+    <g transform="translate(0 5)">
+      <ellipse cx="0" cy="48" rx="30" ry="6" fill="#000000" opacity="0.6"/>
+      <rect x="-12" y="10" width="10" height="32" fill="#171717" rx="1"/>
+      <rect x="2" y="10" width="10" height="32" fill="#171717" rx="1"/>
+      <rect x="-17" y="-25" width="34" height="35" fill="#4b5563" rx="3"/>
+      <circle cx="-10" cy="-15" r="2.5" fill="#ef4444"/>
+      <circle cx="0" cy="-18" r="1.2" fill="#fbbf24"/>
+      <circle cx="0" cy="-10" r="1.2" fill="#fbbf24"/>
+      <circle cx="0" cy="-2" r="1.2" fill="#fbbf24"/>
+      <circle cx="0" cy="-34" r="9" fill="#fef08a" stroke="#171717" stroke-width="0.5"/>
+      <rect x="-8" y="-44" width="16" height="6" fill="#171717" rx="1"/>
+      <rect x="-6" y="-36" width="5" height="2.5" fill="#000000"/>
+      <rect x="1" y="-36" width="5" height="2.5" fill="#000000"/>
+      <line x1="-1" y1="-35" x2="1" y2="-35" stroke="#000000" stroke-width="0.8"/>
+      <circle cx="-19" cy="-6" r="5" fill="#171717"/>
+      <circle cx="19" cy="-6" r="5" fill="#171717"/>
+    </g>
+
+    <!-- Fighter 2 (Right - Putin - Blue) -->
+    <g transform="translate(100 0)">
+      <ellipse cx="0" cy="42" rx="18" ry="5" fill="#000000" opacity="0.6"/>
+      <rect x="-6" y="5" width="5" height="32" fill="#f3f4f6" rx="1"/>
+      <rect x="1" y="5" width="5" height="32" fill="#f3f4f6" rx="1"/>
+      <rect x="-9" y="6" width="18" height="3" fill="#000000"/>
+      <rect x="-9" y="-25" width="18" height="32" fill="#f3f4f6" rx="3"/>
+      <circle cx="0" cy="-33" r="7" fill="#fed7aa" stroke="#78716c" stroke-width="0.5"/>
+      <path d="M -7,-36 Q 0,-40 7,-36 L 7,-32 Q 0,-37 -7,-32 Z" fill="#78716c"/>
+      <rect x="-14" y="-21" width="5" height="18" fill="#f3f4f6" rx="1" transform="rotate(20 -11.5 -12)"/>
+      <rect x="9" y="-21" width="5" height="18" fill="#f3f4f6" rx="1" transform="rotate(-20 11.5 -12)"/>
+      <circle cx="-18" cy="-9" r="3.5" fill="#2563eb"/>
+      <circle cx="18" cy="-9" r="3.5" fill="#2563eb"/>
+    </g>
+  </g>
+
+  <!-- Bottom subtitle -->
+  <g transform="translate(256 470)">
+    <text x="0" y="0" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" fill="#fbbf24" letter-spacing="6">
+      ARENA SIMULATOR
+    </text>
+  </g>
+
+  <!-- Scanlines -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="0.5">
+    <line x1="0" y1="100" x2="512" y2="100"/>
+    <line x1="0" y1="200" x2="512" y2="200"/>
+    <line x1="0" y1="300" x2="512" y2="300"/>
+    <line x1="0" y1="400" x2="512" y2="400"/>
+  </g>
+</svg>

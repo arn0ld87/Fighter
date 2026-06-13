@@ -1,0 +1,33 @@
+; Engine configuration file.
+; Triple Threat Arena — Godot 4.6 game.
+
+config_version=5
+
+[application]
+
+config/name="Triple Threat Arena"
+config/description="Satirische 3-Kämpfer-Arena. Letzter Stehender gewinnt."
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[internationalization]
+
+locale/fallback="de"
+
+[physics]
+
+3d/default_gravity=18.0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.02, 0.02, 0.05, 1)

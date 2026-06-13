@@ -100,6 +100,15 @@ godot/
 
 ## 6. Nächste Schritte (Backlog)
 - iOS: Export-Templates laden, App-Icons generieren, Team-ID setzen, `.ipa` bauen + auf iPhone testen.
-- Polish: Tastatur-Hilfetext auf Touch-Geräten ausblenden; Titel-/Charakter-Auswahl-Screen.
-- Gesichts-Crops feiner zuschneiden (Hintergrund/Logos aus den Quellfotos entfernen).
-- Optional: Partikel bei Treffern, Gemini-Live-Kommentar via HTTPRequest.
+- ✅ Tastatur-Hilfetext auf Touch ausgeblendet; ✅ Titel-Screen; ✅ Treffer-Partikel; ✅ Gesichts-Crops verbessert.
+- Charakter-Auswahl-Screen (statt fixer 3er-Aufstellung).
+- Optional: Gemini-Live-Kommentar via HTTPRequest.
+
+### Aus Codex-Review (2026-06-13) übrig / verschoben
+- **HUD-Layout iPhone-Aspect (#10):** HUD nutzt teils feste Pixel (HP-Balken x=24/456/888). Auf
+  19.5:9-iPhones ohne passenden `stretch`-Mode clustert das links. Auf Anchor-/Container-Layout umstellen
+  ODER `project.godot` content-scale (canvas_items, Basis 1280×720) prüfen/setzen.
+- **Optional Partikel-Pooling (#5):** statt pro Treffer neue CPUParticles3D — 2–3 vorallozieren, `restart()`.
+- **`--shot` Screenshot auf Device (#3):** `get_viewport().get_texture().get_image()` ist auf iOS/Metal
+  unzuverlässig — irrelevant, da `--shot` nur Dev-Tool ist (im Spiel nie genutzt).
+- Erledigt aus Review: time_scale-Reset, Per-Frame-Alloc-Reduktion, Crowd-Schatten aus, FX-Free-Timer.

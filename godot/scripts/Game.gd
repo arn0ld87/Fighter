@@ -40,6 +40,7 @@ var _action_shot: bool = false  # --action: live AI fight, capture mid-combat
 var fight_elapsed: float = 0.0
 
 func _ready() -> void:
+	Engine.time_scale = 1.0   # global state survives reload_current_scene(); reset on (re)start
 	_action_shot = "--action" in OS.get_cmdline_user_args()
 	_want_shot = ("--shot" in OS.get_cmdline_user_args()) or _action_shot
 	_sim_fight = "--simfight" in OS.get_cmdline_user_args()
@@ -240,6 +241,7 @@ func _build_crowd() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = _mat(Color(1, 1, 1), 0.9)
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # crowd: no shadow pass on mobile
 		add_child(mmi)
 		# tier riser: a FLAT RING under the seats — must never cover the arena center
 		var riser := MeshInstance3D.new()
@@ -295,7 +297,7 @@ func _build_touch() -> void:
 
 # ----------------------------------------------------------------- loop
 func _process(delta: float) -> void:
-	if _want_shot and Engine.get_frames_drawn() == 240:
+	if _want_shot and Engine.get_frames_drawn() >= 240:
 		_want_shot = false
 		_do_shot()
 	_update_targets()
@@ -340,6 +342,14 @@ func _do_shot() -> void:
 	print("SHOT_SAVED /tmp/godot_shot.png")
 	get_tree().quit()
 
+func _alive_fighters() -> Array:
+	# manual loop avoids a per-frame Callable+Array alloc from fighters.filter(func...)
+	var a: Array = []
+	for f in fighters:
+		if f.state != Fighter.State.KO:
+			a.append(f)
+	return a
+
 func _update_targets() -> void:
 	for f in fighters:
 		if f.state == Fighter.State.KO:
@@ -356,7 +366,7 @@ func _update_targets() -> void:
 		f.target = best
 
 func _check_win() -> void:
-	var alive := fighters.filter(func(f): return f.state != Fighter.State.KO)
+	var alive := _alive_fighters()
 	if alive.size() <= 1:
 		match_state = "over"
 		winner_name = alive[0].fighter_name if alive.size() == 1 else "Unentschieden"
@@ -424,7 +434,8 @@ func _spawn_hit_fx(pos: Vector3, is_special: bool) -> void:
 	p.scale_amount_max = 1.4 if is_special else 1.0
 	add_child(p)
 	p.emitting = true
-	get_tree().create_timer(1.3).timeout.connect(p.queue_free)
+	# particles finish at lifetime (0.5s); free shortly after to cut node churn on mobile
+	get_tree().create_timer(0.7).timeout.connect(p.queue_free)
 
 func _update_crowd(delta: float) -> void:
 	if not audio or _want_shot:
@@ -444,7 +455,7 @@ func _update_camera(delta: float) -> void:
 		Engine.time_scale = 1.0
 
 	# centroid of alive fighters
-	var alive := fighters.filter(func(f): return f.state != Fighter.State.KO)
+	var alive := _alive_fighters()
 	var c := Vector3(0, 1, 0)
 	if alive.size() > 0:
 		c = Vector3.ZERO

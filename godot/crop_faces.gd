@@ -6,9 +6,9 @@ func _init() -> void:
 	var base := "res://assets/refs/"
 	var jobs := [
 		# rect = pixel region (x, y, w, h) of the face in the source photo
-		{ "src": "trump.jpg", "dst": "trump_face.png", "rect": Rect2i(735, 55, 300, 305) },
+		{ "src": "trump.jpg", "dst": "trump_face.png", "rect": Rect2i(715, 45, 225, 250) },
 		{ "src": "putin.jpg", "dst": "putin_face.png", "rect": Rect2i(1255, 120, 560, 620) },
-		{ "src": "kim.jpg",   "dst": "kim_face.png",   "rect": Rect2i(610, 195, 440, 440) },
+		{ "src": "kim.jpg",   "dst": "kim_face.png",   "rect": Rect2i(705, 150, 500, 520) },
 	]
 	for j in jobs:
 		var path: String = ProjectSettings.globalize_path(base + String(j["src"]))

@@ -70,8 +70,12 @@ func _ready() -> void:
 			f.face_yaw = 0.0
 			f.rotation.y = 0.0
 			i += 1
-		match_state = "intro"
-		intro_timer = 999.0
+		match_state = "title"
+	if not _want_shot and not _sim_fight:
+		# normal play: start on a title screen, fighters posed at their spawns
+		match_state = "title"
+		for f in fighters:
+			f.frozen = true
 
 # ----------------------------------------------------------------- input
 func _add_key(action: String, keycode: int) -> void:
@@ -307,6 +311,9 @@ func _process(delta: float) -> void:
 		_restart()
 
 	match match_state:
+		"title":
+			if Input.is_action_just_pressed("ttf_jab") or Input.is_action_just_pressed("ttf_heavy") or Input.is_action_just_pressed("ttf_special"):
+				_start_match()
 		"intro":
 			intro_timer -= delta
 			if intro_timer <= 0.0:
@@ -356,6 +363,15 @@ func _check_win() -> void:
 		if _sim_fight:
 			print("FIGHT_OVER winner=", winner_name, " elapsed=", "%.1f" % fight_elapsed)
 			get_tree().quit()
+
+func _start_match() -> void:
+	for f in fighters:
+		f.frozen = false
+	match_state = "intro"
+	intro_timer = 2.0
+	_gong_played = false
+	if audio:
+		audio.play_ui()
 
 func _restart() -> void:
 	if audio:

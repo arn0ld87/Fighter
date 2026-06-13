@@ -71,7 +71,8 @@ func setup(fighters: Array, _player) -> void:
 	_root.add_child(_hit)
 
 	var help := Label.new()
-	help.text = "Bewegen: WASD   Schlag: J   Schwer: K   Spezial: L   Block: I   Ausweichen: U   Neustart: R"
+	var is_touch := DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+	help.text = "" if is_touch else "Bewegen: WASD   Schlag: J   Schwer: K   Spezial: L   Block: I   Ausweichen: U   Neustart: R"
 	help.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	help.add_theme_font_size_override("font_size", 16)
@@ -93,6 +94,9 @@ func refresh(fighters: Array, match_state: String, winner_name: String) -> void:
 			nl.add_theme_color_override("font_color", Color("555555"))
 
 	match match_state:
+		"title":
+			_banner.text = "TRIPLE THREAT ARENA\nTippen / Leertaste zum Start"
+			_banner.visible = true
 		"intro":
 			_banner.text = "BEREIT?"
 			_banner.visible = true

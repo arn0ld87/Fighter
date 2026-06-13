@@ -179,9 +179,9 @@ Build a custom sequence of combat moments:
 │         │                                                  │
 │  ┌──────▼──────────┐  ┌──────────────────────────────┐   │
 │  │ StadiumCanvas   │  │ CommentaryFeed               │   │
-│  │ (3D Projection) │  │ (AI Commentary + Crowd)      │   │
-│  │ • WebGL Canvas  │  │ • Web Speech API             │   │
-│  │ • 30 FPS Loop   │  │ • Real-time ticker           │   │
+│  │ (Three.js/WebGL)│  │ (AI Commentary + Crowd)      │   │
+│  │ • PBR + Bloom   │  │ • Web Speech API             │   │
+│  │ • SoundManager  │  │ • Real-time ticker           │   │
 │  └─────────────────┘  └──────────────────────────────┘   │
 └────────────────────────┬─────────────────────────────────┘
                          │ POST /api/commentary
@@ -197,13 +197,21 @@ Build a custom sequence of combat moments:
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 3D Projection Engine
-The simulation uses a **custom 3D-to-2D projection** implemented in pure Canvas 2D:
-- **Yaw/Pitch/Zoom** camera rotation
-- **Depth sorting** for proper Z-occlusion
-- **Skeletal animation** with weighted joint interpolation
-- **Particle system** for hit sparks and sweat
-- **Screen shake** on critical impacts
+### Rendering Engine (Three.js / WebGL)
+The arena is rendered with a real **Three.js / WebGL** pipeline (`src/engine/`):
+- **PBR materials**, real **SpotLights with shadow maps**, **UnrealBloom** post-processing, ACES tone mapping
+- **Procedurally modelled fighters** — distinct builds, outfits and faces per character
+- **Instanced crowd**, 4 themed lighting/fog presets, 6 ported camera modes (orbit / ringside / cradle / 3× POV)
+- **GPU particle system** for hit sparks & sweat, **screen shake** on critical impacts
+
+The legacy pure-Canvas-2D projection engine stays available via `VITE_RENDERER=canvas`.
+
+### Audio (`src/audio/`)
+A full Web-Audio sound layer mixed through **Howler.js**:
+- Procedurally **synthesized** SFX (hit / whoosh / block / signature / gong / buzzer / UI) — zero-license, always available
+- **Dynamic crowd bed** that swells with the action, plus an optional music loop
+- A **volume mixer** (master / SFX / crowd / music) in the dashboard
+- Optional real **CC0 samples** via `node scripts/fetch-audio.mjs` (preferred over synthesis when present)
 
 ---
 
@@ -216,6 +224,8 @@ The simulation uses a **custom 3D-to-2D projection** implemented in pure Canvas 
 - **[TailwindCSS 4](https://tailwindcss.com/)** — Utility-first styling
 - **[Lucide React](https://lucide.dev/)** — Icon library
 - **[Motion](https://motion.dev/)** — Animation library
+- **[Three.js](https://threejs.org/)** — WebGL 3D rendering engine
+- **[Howler.js](https://howlerjs.com/)** — Web Audio mixing
 
 ### Backend
 - **[Express 4](https://expressjs.com/)** — HTTP server
@@ -240,9 +250,21 @@ Fighter-main/
 ├── 📁 src/
 │   ├── 📁 components/
 │   │   ├── 📄 CommentaryFeed.tsx # AI commentary UI
-│   │   ├── 📄 ControlDashboard.tsx # Camera/Mode controls
+│   │   ├── 📄 ControlDashboard.tsx # Camera/Theme/Audio controls
 │   │   ├── 📄 FighterStats.tsx   # HP bars & bio cards
-│   │   └── 📄 StadiumCanvas.tsx  # 3D rendering engine
+│   │   ├── 📄 StadiumCanvas.tsx  # Legacy 2D-canvas engine
+│   │   └── 📄 StadiumCanvasThree.tsx # Three.js/WebGL host (default)
+│   ├── 📁 engine/                # Three.js renderer modules
+│   │   ├── 📄 Renderer.ts        # Scene + bloom composer
+│   │   ├── 📄 CameraDirector.ts  # 6 camera modes
+│   │   ├── 📄 Arena.ts           # Ring, crowd, themes
+│   │   ├── 📄 Lighting.ts        # Spotlights + shadows + bloom
+│   │   ├── 📄 FighterRig.ts      # Procedural fighter models
+│   │   ├── 📄 Particles.ts       # GPU particle cloud
+│   │   └── 📄 types.ts           # Render contract + theme presets
+│   ├── 📁 audio/                 # Web-Audio sound layer
+│   │   ├── 📄 SoundManager.ts    # Howler mixer + buses
+│   │   └── 📄 synth.ts           # Procedural SFX / crowd / music
 │   ├── 📄 App.tsx                # Main game loop & state
 │   ├── 📄 main.tsx               # React entry point
 │   ├── 📄 index.css              # Global styles
@@ -309,7 +331,9 @@ Fighter-main/
 - [ ] **Tournament bracket** for full championship progression
 - [ ] **More fighters** (5+ roster with unique signature moves)
 - [ ] **Custom arena builder** with editor mode
-- [ ] **Steam / WebGL version** with native performance
+- [x] **WebGL renderer** (Three.js) — PBR lighting, shadows, bloom & procedural fighter models
+- [x] **Full sound design** — synthesized SFX, dynamic crowd bed, music & volume mixer
+- [ ] **Steam / desktop build** with native performance
 - [ ] **Mobile touch controls** for iOS/Android
 - [ ] **Twitch integration** for live streaming
 

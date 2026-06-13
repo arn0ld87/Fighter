@@ -6,7 +6,7 @@
 
 - **Branch:** `feat/threejs-audio-overhaul`
 - **Start:** 2026-06-13
-- **Stand zuletzt aktualisiert:** 2026-06-13 — Setup-Phase
+- **Stand zuletzt aktualisiert:** 2026-06-13 — **alle Phasen P0–P7 abgeschlossen**, tsc+build grün, Render headless verifiziert
 
 ---
 
@@ -140,8 +140,8 @@ Legende: ⬜ offen · 🟡 in Arbeit · ✅ fertig · ⚠️ blockiert/Risiko
 | P0 | Deps installieren (three, howler, types) | ✅ | three@0.184, howler@2.2.4 |
 | P0 | `engine/types.ts` Render-Kontrakt | ✅ | THEMES, RenderState, SceneModule, CameraRig, WORLD |
 | P0 | Feature-Flag-Gerüst | ✅ | `VITE_RENDERER=canvas` schaltet auf Legacy |
-| P1 | CC0-Asset-Recherche | ✅ | Haiku-Manifest (OpenGameArt); ⚠️ Semantik fragwürdig → optional |
-| P1 | `scripts/fetch-audio.mjs` + Download | 🟡 | **Synthese ist Primärpfad**; Download best-effort/optional |
+| P1 | CC0-Asset-Recherche | ✅ | Haiku-Manifest (OpenGameArt); Semantik/Größe geprüft |
+| P1 | `scripts/fetch-audio.mjs` + Download | ✅ | 2 validierte CC0-Samples (whoosh, ui_click); Rest Synthese; lange Fehl-Clips per Guard verworfen |
 | P2 | `synth.ts` (prozedurale Web-Audio-SFX) | ✅ | Subagent (sonnet), ~290 Z. |
 | P2 | `SoundManager.ts` (Howler + Synth-Fallback) | ✅ | Subagent + API-Reconcile |
 | P3 | `Arena.ts` | ✅ | Subagent, ~195 Z. |
@@ -156,9 +156,9 @@ Legende: ⬜ offen · 🟡 in Arbeit · ✅ fertig · ⚠️ blockiert/Risiko
 | P5 | Feature-Flag verdrahtet | ✅ | `USE_THREE` in App.tsx |
 | P6 | `tsc --noEmit` grün | ✅ | |
 | P6 | `vite build` grün | ✅ | 1700 Module, 897 KB (three.js) |
-| P6 | Laufzeit-Check | 🟡 | Headless-Browser-Screenshot folgt |
-| P7 | README/Roadmap-Update | ⬜ | |
-| P7 | Commit + PR | ⬜ | |
+| P6 | Laufzeit-Check | ✅ | Headless-Chromium: Canvas 906×460, WebGL aktiv, **0 Konsolenfehler**, Render bestätigt |
+| P7 | README/Roadmap-Update | ✅ | Engine/Audio/Struktur/Roadmap aktualisiert |
+| P7 | Commit + PR | 🟡 | finaler Commit + PR in Arbeit |
 
 ---
 
@@ -174,4 +174,19 @@ Legende: ⬜ offen · 🟡 in Arbeit · ✅ fertig · ⚠️ blockiert/Risiko
 
 ## 8. Asset-Credits
 
-Wird von `fetch-audio.mjs` nach `public/audio/CREDITS.md` geschrieben (Quelle + CC0-Lizenz je Datei). Zusammenfassung folgt nach P1.
+Details in `public/audio/CREDITS.md` (von `fetch-audio.mjs` geschrieben). Stand:
+
+| Key | Quelle | Lizenz | Status |
+|---|---|---|---|
+| `whoosh.mp3` | OpenGameArt.org (swishprev) | CC0 | ✅ geladen (27 KB) |
+| `ui_click.ogg` | OpenGameArt.org (beep) | CC0 | ✅ geladen (6 KB) |
+| alle übrigen (hit, block, signature×3, gong, buzzer, crowd, music) | — | — | 🎛 prozedural synthetisiert (`synth.ts`) |
+
+Verworfen: `hit.mp3` (586 KB) und `bep.mp3` (215 KB) — zu lang für SFX, Größen-Guard hat sie abgelehnt; Synthese liefert hier punchigere, korrekte Sounds. Synthese ist generell der Primärpfad; reale Samples sind optional und werden bevorzugt, wenn vorhanden.
+
+## 9. Verifikations-Evidenz
+
+- `npx tsc --noEmit` → **PASS** (alle Module + Renderer + Integration).
+- `npx vite build` → **PASS** (1700 Module, 897 KB/245 KB gzip; Samples nach `dist/audio/` kopiert).
+- Headless-Chromium (Playwright + SwiftShader) → Canvas 906×460, WebGL-Kontext aktiv, **0 Konsolenfehler**; Screenshot zeigt Neon-Käfig mit Bloom-Seilen, Schatten und drei erkennbar unterschiedlichen 3D-Kämpfern.
+- Smoke-Test reproduzierbar: `PW_EXE=<chrome-headless-shell> node scripts/shot.mjs` → `/tmp/fighter-shot.png`.

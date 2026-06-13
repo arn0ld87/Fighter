@@ -166,23 +166,29 @@ export class SoundManager {
   }
 
   private _loadSamples(): void {
+    // Optional sample layer: try mp3 → ogg → wav per key. Whatever is present
+    // in /audio/ wins over synthesis; missing files just leave synthesis active.
     for (const key of ALL_SAMPLE_KEYS) {
-      try {
-        const howl = new Howl({
-          src: [`/audio/${key}.mp3`],
-          preload: true,
-          onload: () => {
-            this.sampleLoaded.set(key, true);
-          },
-          onloaderror: () => {
-            this.sampleLoaded.set(key, false);
-          },
-        });
-        this.samples.set(key, howl);
-        this.sampleLoaded.set(key, false);
-      } catch {
-        // sample loading is optional — swallow
-      }
+      this._tryLoadSample(key, ["mp3", "ogg", "wav"], 0);
+    }
+  }
+
+  private _tryLoadSample(key: SampleKey, exts: string[], i: number): void {
+    if (i >= exts.length) return;
+    try {
+      const howl = new Howl({
+        src: [`/audio/${key}.${exts[i]}`],
+        preload: true,
+        onload: () => {
+          this.samples.set(key, howl);
+          this.sampleLoaded.set(key, true);
+        },
+        onloaderror: () => {
+          this._tryLoadSample(key, exts, i + 1);
+        },
+      });
+    } catch {
+      this._tryLoadSample(key, exts, i + 1);
     }
   }
 

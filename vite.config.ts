@@ -6,6 +6,12 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      // Expose only the PRESENCE of the Gemini key to the client (never its value).
+      // Without this, `process.env.GEMINI_API_KEY` in App.tsx throws
+      // "process is not defined" in the dev server and white-screens the app.
+      'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY ? 'set' : ''),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -36,10 +36,12 @@ var touch                       # TouchControls.gd instance (iPhone)
 var crowd_excite: float = 0.0   # decays; spikes on hits -> louder crowd
 var _gong_played: bool = false
 var _sim_fight: bool = false    # --simfight: all AI, print duration, quit
+var _action_shot: bool = false  # --action: live AI fight, capture mid-combat
 var fight_elapsed: float = 0.0
 
 func _ready() -> void:
-	_want_shot = "--shot" in OS.get_cmdline_user_args()
+	_action_shot = "--action" in OS.get_cmdline_user_args()
+	_want_shot = ("--shot" in OS.get_cmdline_user_args()) or _action_shot
 	_sim_fight = "--simfight" in OS.get_cmdline_user_args()
 	_setup_input()
 	_build_environment()
@@ -50,13 +52,14 @@ func _ready() -> void:
 	_build_hud()
 	_build_audio()
 	_build_touch()
-	if _sim_fight:
+	if _sim_fight or _action_shot:
 		for f in fighters:
 			f.is_player = false
 		player = null
 		match_state = "fight"
 		intro_timer = 0.0
-	if _want_shot:
+		_gong_played = true
+	if _want_shot and not _action_shot:
 		# deterministic portrait: 3 fighters in a row, facing the camera, frozen
 		var xs := [-2.4, 0.0, 2.4]
 		var i := 0
@@ -368,6 +371,7 @@ func _on_landed_hit(_attacker, victim, damage: float, is_special: bool) -> void:
 	if audio:
 		audio.play_hit(is_special)
 	crowd_excite = minf(1.0, crowd_excite + (0.55 if is_special else 0.3))
+	_spawn_hit_fx(victim.global_position + Vector3(0, 1.2, 0), is_special)
 
 func _on_ko(_who) -> void:
 	shake = maxf(shake, 0.7)
@@ -378,6 +382,33 @@ func _on_ko(_who) -> void:
 func _on_swing(_kind) -> void:
 	if audio:
 		audio.play_whoosh()
+
+func _spawn_hit_fx(pos: Vector3, is_special: bool) -> void:
+	var p := CPUParticles3D.new()
+	p.position = pos
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 28 if is_special else 16
+	p.lifetime = 0.5
+	var m := SphereMesh.new()
+	m.radius = 0.045; m.height = 0.09; m.radial_segments = 6; m.rings = 3
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color("ffd24a") if is_special else Color("fff2cc")
+	mat.emission_enabled = true
+	mat.emission = Color("ff5a1e") if is_special else Color("ffcf66")
+	m.material = mat
+	p.mesh = m
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 180.0
+	p.initial_velocity_min = 2.2
+	p.initial_velocity_max = 5.5 if is_special else 3.6
+	p.gravity = Vector3(0, -7.0, 0)
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 1.4 if is_special else 1.0
+	add_child(p)
+	p.emitting = true
+	get_tree().create_timer(1.3).timeout.connect(p.queue_free)
 
 func _update_crowd(delta: float) -> void:
 	if not audio or _want_shot:

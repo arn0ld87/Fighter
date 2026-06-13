@@ -26,26 +26,34 @@ Echtes Game-Loop statt Simulation:
 
 ## 2. Wie = Architektur (code-first, Szenen größtenteils per GDScript gebaut)
 
+Tatsächliche Struktur (alles in 2 großen Skripten gebaut, kein separater Builder/Director):
+
 ```
 godot/
-  project.godot          # Config: de-Locale, Forward+ Renderer, Input-Map, iOS-Settings
+  project.godot          # Config: de-Locale, gl_compatibility (iOS), Input-Map
   Main.tscn              # minimaler Root (Node3D + Game.gd) — Welt wird im Code gebaut
   scripts/
-    Game.gd              # Orchestrator: Welt/Arena/Licht bauen, Match-State-Machine, Spawning
-    Fighter.gd           # CharacterBody3D: Bewegung, Combat, HP, Treffer-Reaktion, Proc-Animation
-    FighterBuilder.gd    # baut den Körper (Körperbau/Outfit/Kopf je Kämpfer aus Mesh-Primitives)
-    ArenaBuilder.gd      # Oktagon-Ring, Seile, Tribünen + Zuschauer, Boden
-    CameraDirector.gd    # mehrere Kameramodi, folgt der Action
-    Hud.gd               # deutsche UI (CanvasLayer): HP, Namen, Runde, Sieg, Pause
-    TouchControls.gd     # On-Screen-Pad + Buttons (iPhone)
-    Audio.gd             # SFX/Crowd (CC0-Samples + prozedural)
-  assets/audio/          # CC0-Samples (aus Iteration 1 übernommen)
-  export_presets.cfg     # iOS-Preset (+ macOS/Web)
+    Game.gd              # Orchestrator: Welt/Arena/Ring/Tribünen/Licht, EINE Broadcast-Kamera,
+                         #   Match-State-Machine, Spawning, Audio-/Touch-Verdrahtung, --shot/--simfight
+    Fighter.gd           # CharacterBody3D: prozeduraler Anzug-Körper + Foto-Gesicht (QuadMesh-Decal),
+                         #   Bewegung, Combat, HP, KO, Limb-Animation; Signale ko/landed_hit/swung
+    Hud.gd               # deutsche UI (CanvasLayer): HP-Balken, Namen, Banner, Treffer-Ticker
+    TouchControls.gd     # virtueller Joystick + 5 Aktions-Buttons (auto-versteckt auf Desktop)
+    Audio.gd             # SFX-Pool (whoosh/ui) + prozedurales Crowd-Brown-Noise, set_crowd(level)
+    crop_faces.gd        # Einmal-Tool: schneidet Gesichts-Region aus <ref>.jpg -> <ref>_face.png
+  assets/
+    audio/               # whoosh.mp3, ui_click.ogg (CC0)
+    refs/                # trump/putin/kim .jpg (Quelle) + *_face.png (Crops als Kopf-Textur)
+  export_presets.cfg     # iOS-Preset (arm64, Landscape, Bundle de.alexle135.triplethreat)
 ```
 
-**Verifikation:** `godot --headless --quit-after 5 --path godot` (lädt/kompiliert, Parse-Fehler sichtbar);
-GDScript-Check; später iOS-Export-Validierung. (Visuelle Prüfung headless eingeschränkt — finaler
-Sicht-/Gerätetest auf deinem Mac/iPhone.)
+**Verifikation (headless, ohne Gerät):**
+- Parse/Class-Check: `godot --headless --import` (registriert `Fighter`, zeigt Script-Fehler).
+- Sicht-Check: `godot --rendering-driver opengl3 -- --shot` → rendert deterministisches Portrait
+  (3 Kämpfer frontal, frozen), speichert `/tmp/godot_shot.png` bei Frame 240, beendet sich.
+- Balance: `godot --rendering-driver opengl3 -- --simfight` → alle 3 als KI, druckt
+  `FIGHT_OVER winner=… elapsed=…s` und beendet sich. Mehrfach laufen für eine Verteilung.
+- **Nur EINE Godot-Instanz gleichzeitig** (parallele teilen sich den Metal-Kontext → Hänger).
 
 ## 3. Phasen
 
@@ -59,25 +67,39 @@ Sicht-/Gerätetest auf deinem Mac/iPhone.)
 - **G7 iPhone** — Touch-Steuerung, mobiles UI-Layout, iOS-Export-Preset + Build-Doku.
 - **G8 Verify/Finish** — headless-Check grün, Commit, Doku schließen.
 
-## 4. Status-Board ← laufend
+## 4. Status-Board ← laufend (Stand 2026-06-13)
 
 | Phase | Status | Notiz |
 |---|---|---|
 | Engine-Entscheidung Godot | ✅ | 4.6.3 installiert |
-| G0 Setup/Projekt lädt | ⬜ | |
-| G1 Arena + Zuschauer + Kamera | ⬜ | |
-| G2 Kämpfer-Modelle + Bewegung | ⬜ | |
-| G3 Combat + Game-Feel | ⬜ | |
-| G4 KI + Match/Runden | ⬜ | |
-| G5 Deutsche HUD | ⬜ | |
-| G6 Audio | ⬜ | |
-| G7 iPhone (Touch + iOS-Export) | ⬜ | |
-| G8 Verify + Commit | ⬜ | |
+| G0 Setup/Projekt lädt | ✅ | `--import` registriert `Fighter`, 0 Script-Fehler |
+| G1 Arena + Zuschauer + Kamera | ✅ | 4 Tribünen-Tiers (MultiMesh), Oktagon-Ring mit Pfosten+3 Seilen, EINE Broadcast-Kamera (folgt Schwerpunkt, Distanz skaliert mit Spread) |
+| G2 Kämpfer-Modelle + Bewegung | ✅ | Anzug-Körper (Jacke/Hemd/Krawatte/Handschuhe/Schuhe) + **Foto-Gesicht** als unshaded QuadMesh-Decal; distinkte Builds (Größe/Bauch/Haar) |
+| G3 Combat + Game-Feel | ✅ | Jab/Heavy/Special/Block/Dodge, HP, Hit-Stop, Screen-Shake; Schaden global ×0.6 → ~17–20s 3-Wege-KI-Bout |
+| G4 KI + Match/Runden | ✅ | Nächster-Gegner-KI, Free-for-all, letzter Stehender, State Machine intro→fight→over, Rematch (R) |
+| G5 Deutsche HUD | ✅ | HP-Balken, Namen, „BEREIT?/GEWINNT!", Treffer-Ticker, Steuerungs-Hilfe |
+| G6 Audio | ✅ | Verdrahtet: Gong@Start, play_hit@Treffer, play_whoosh@Schwung, Buzzer@KO, dynamische Crowd-Lautstärke (excite decay) |
+| G7 iPhone (Touch + iOS-Export) | 🟡 | Touch (Joystick+Buttons) verdrahtet & auto-versteckt am Desktop; iOS-Preset fertig. **Offen:** Export-Templates laden (Editor, ~700 MB), Signing-Team-ID + Provisioning + App-Icons (Apple-Account nötig) |
+| G8 Verify + Commit | 🔄 | headless-Checks grün; Commit der Godot-MVP läuft |
 
-## 5. Offene Punkte aus Three.js-Iteration (übertragen ins Godot-Design)
-- Kämpfe nicht in Sekunden vorbei → HP/Schaden/Kadenz von Anfang an balancieren (G3/G4).
-- Kameras deutlich unterscheidbar → mehrere echte Modi (G1/CameraDirector).
-- Zuschauer sichtbar → echte Tribünen mit Zuschauer-Meshes (G1).
-- Bessere Animation → Bone-/Limb-Lerp, Hol-/Recoil-Bewegungen (G2/G3).
-- Deutsch als Standard → de-Locale + alle Strings deutsch (G5).
-- PR #1 (Three.js) Gemini-Findings: geparkt; bei Bedarf separat abarbeitbar.
+**Gelöste Hauptblocker:**
+- **Kämpfer unsichtbar (vermeintl. Kamera-Problem):** Ursache war `_build_crowd()` — die Tier-Riser
+  waren massive `CylinderMesh`-Vollscheiben (Radius bis 15,6) gestapelt bis y=3,1 und haben die
+  Arena-Mitte von oben begraben. Fix: flache `TorusMesh`-Ringe → Mitte frei. **Kein Kamera-Bug.**
+- **Magenta-Balken hinter Köpfen:** waren die emissiven Neon-Ring-Pfosten (`ff1e56`) — ersetzt durch
+  gepolsterte Metall-Pfosten + dezente rote Seile.
+- **Foto-Gesichter zu dunkel/getönt:** Spotlights tönten sie — Decal jetzt `SHADING_MODE_UNSHADED`.
+
+## 5. Offene Punkte aus Three.js-Iteration
+- ✅ Kämpfe nicht in Sekunden vorbei → Schaden ×0.6, messbar via `--simfight`.
+- ✅ Kameras → bewusst auf EINE klare Broadcast-Kamera reduziert (User-Wunsch).
+- ✅ Zuschauer sichtbar → 4 MultiMesh-Tribünen-Tiers.
+- ✅ Bessere Animation → Limb-Lerp, Recoil, Walk/Attack/Block/Dodge-Posen.
+- ✅ Deutsch als Standard.
+- ⬜ PR #1 (Three.js) Gemini-Findings: geparkt; bei Bedarf separat abarbeitbar.
+
+## 6. Nächste Schritte (Backlog)
+- iOS: Export-Templates laden, App-Icons generieren, Team-ID setzen, `.ipa` bauen + auf iPhone testen.
+- Polish: Tastatur-Hilfetext auf Touch-Geräten ausblenden; Titel-/Charakter-Auswahl-Screen.
+- Gesichts-Crops feiner zuschneiden (Hintergrund/Logos aus den Quellfotos entfernen).
+- Optional: Partikel bei Treffern, Gemini-Live-Kommentar via HTTPRequest.

@@ -5,6 +5,7 @@ extends CharacterBody3D
 
 signal ko(who)
 signal landed_hit(attacker, victim, damage, is_special)
+signal swung(kind)
 
 enum State { IDLE, WALK, ATTACK, BLOCK, DODGE, HIT, KO }
 
@@ -14,6 +15,7 @@ var fighter_name: String = "Fighter"
 var special_name: String = "SPECIAL"
 var is_player: bool = false
 var can_attack: bool = true
+var frozen: bool = false   # portrait/screenshot pose: no AI, no movement
 var max_hp: float = 100.0
 var hp: float = 100.0
 var power: float = 6.0
@@ -26,6 +28,11 @@ var hair_color := Color("9ca3af")
 var hair_style := "cap"
 var height_m: float = 1.75
 var girth: float = 1.0
+var ref_key: String = ""   # if assets/refs/<ref_key>_face.png exists -> face texture
+var suit := Color("14161d")
+var tie := Color("6e2230")
+var has_tie := true
+var has_shirt := true
 
 # --- runtime ---
 var state: int = State.IDLE
@@ -67,6 +74,13 @@ func configure(d: Dictionary) -> void:
 	hair_style = d.get("hair_style", "cap")
 	height_m = d.get("height", 1.75)
 	girth = d.get("girth", 1.0)
+	suit = Color(d.get("suit", "14161d"))
+	var tiestr: String = d.get("tie", "")
+	has_tie = tiestr != ""
+	if has_tie:
+		tie = Color(tiestr)
+	has_shirt = d.get("shirt", true)
+	ref_key = d.get("ref", "")
 
 func _ready() -> void:
 	_grav = float(ProjectSettings.get_setting("physics/3d/default_gravity", 18.0))
@@ -111,59 +125,86 @@ func _build_body() -> void:
 	var hs := height_m / 1.75            # height scale
 	var g := clampf(girth, 0.85, 1.6)    # girth
 	var skin_mat := _mat(skin)
-	var shorts_mat := _mat(shorts)
+	var suit_mat := _mat(suit, 0.7)
 	var glove_mat := _mat(Color("d41a1a"))
-	var shoe_mat := _mat(Color("1a1a1a"))
+	var shoe_mat := _mat(Color("141414"), 0.5)
 
-	# hips
+	# hips (suit trousers)
 	var hipw := 0.5 * g
 	_torso = Node3D.new(); _torso.position.y = 0.95 * hs; add_child(_torso)
-	_part(_box(Vector3(hipw, 0.28 * hs, 0.34 * g)), shorts_mat, Vector3.ZERO, _torso)
-	# chest/torso (tapers up)
-	var chest := _part(_box(Vector3(0.62 * g, 0.66 * hs, 0.4 * g)), skin_mat, Vector3(0, 0.5 * hs, 0), _torso)
+	_part(_box(Vector3(hipw, 0.28 * hs, 0.34 * g)), suit_mat, Vector3.ZERO, _torso)
+	# jacket torso
+	var chest := _part(_box(Vector3(0.64 * g, 0.66 * hs, 0.42 * g)), suit_mat, Vector3(0, 0.5 * hs, 0), _torso)
 	chest.name = "Chest"
+	# white shirt + tie strip on the front
+	if has_shirt:
+		_part(_box(Vector3(0.16 * g, 0.6 * hs, 0.02)), _mat(Color("f2f2f2"), 0.6), Vector3(0, 0.5 * hs, 0.21 * g + 0.012), _torso)
+	if has_tie:
+		_part(_box(Vector3(0.06, 0.44 * hs, 0.02)), _mat(tie, 0.5), Vector3(0, 0.44 * hs, 0.21 * g + 0.024), _torso)
 
-	# head + neck
-	_part(_cap(0.08, 0.18 * hs), skin_mat, Vector3(0, 0.86 * hs, 0), _torso)
+	# neck + head
+	_part(_cap(0.07, 0.16 * hs), skin_mat, Vector3(0, 0.86 * hs, 0), _torso)
 	_head = Node3D.new(); _head.position = Vector3(0, 1.04 * hs, 0); _torso.add_child(_head)
 	_part(_sphere(0.17), skin_mat, Vector3.ZERO, _head)
-	# eyes
-	var eye_mat := _mat(Color("111111"), 0.4)
-	_part(_sphere(0.028), eye_mat, Vector3(-0.06, 0.02, 0.15), _head)
-	_part(_sphere(0.028), eye_mat, Vector3(0.06, 0.02, 0.15), _head)
-	# hair per style
+	_add_hair()
+	_add_face()
+
+	# arms (suit sleeve + boxing glove)
+	_l_arm = _make_arm(-1.0, hs, g, suit_mat, glove_mat)
+	_r_arm = _make_arm(1.0, hs, g, suit_mat, glove_mat)
+	# legs (suit trousers)
+	_l_leg = _make_leg(-1.0, hs, g, suit_mat, shoe_mat)
+	_r_leg = _make_leg(1.0, hs, g, suit_mat, shoe_mat)
+
+func _add_hair() -> void:
 	var hair_mat := _mat(hair_color)
 	match hair_style:
 		"swoosh":
-			_part(_box(Vector3(0.34, 0.12, 0.32)), hair_mat, Vector3(0, 0.14, 0.04), _head)
+			_part(_box(Vector3(0.36, 0.13, 0.34)), hair_mat, Vector3(0, 0.13, 0.02), _head)
 		"bun":
-			_part(_sphere(0.09), hair_mat, Vector3(0, 0.18, -0.02), _head)
-			_part(_box(Vector3(0.3, 0.06, 0.3)), hair_mat, Vector3(0, 0.1, 0), _head)
+			_part(_box(Vector3(0.32, 0.1, 0.32)), hair_mat, Vector3(0, 0.1, 0), _head)
 		_:
-			_part(_box(Vector3(0.3, 0.07, 0.3)), hair_mat, Vector3(0, 0.12, 0), _head)
+			_part(_box(Vector3(0.32, 0.08, 0.32)), hair_mat, Vector3(0, 0.12, 0), _head)
 
-	# arms
-	_l_arm = _make_arm(-1.0, hs, g, skin_mat, glove_mat)
-	_r_arm = _make_arm(1.0, hs, g, skin_mat, glove_mat)
-	# legs
-	_l_leg = _make_leg(-1.0, hs, g, skin_mat, shorts_mat, shoe_mat)
-	_r_leg = _make_leg(1.0, hs, g, skin_mat, shorts_mat, shoe_mat)
+func _add_face() -> void:
+	if ref_key != "":
+		var path := "res://assets/refs/%s_face.png" % ref_key
+		if ResourceLoader.exists(path):
+			var tex: Texture2D = load(path)
+			if tex != null:
+				var quad := MeshInstance3D.new()
+				var pm := QuadMesh.new()
+				pm.size = Vector2(0.34, 0.36)
+				quad.mesh = pm
+				var fm := StandardMaterial3D.new()
+				fm.albedo_texture = tex
+				fm.cull_mode = BaseMaterial3D.CULL_DISABLED
+				fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				fm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+				quad.material_override = fm
+				quad.position = Vector3(0, 0.02, 0.171)
+				_head.add_child(quad)
+				return
+	# fallback: procedural eyes
+	var eye_mat := _mat(Color("111111"), 0.4)
+	_part(_sphere(0.028), eye_mat, Vector3(-0.06, 0.02, 0.15), _head)
+	_part(_sphere(0.028), eye_mat, Vector3(0.06, 0.02, 0.15), _head)
 
-func _make_arm(side: float, hs: float, g: float, skin_mat, glove_mat) -> Node3D:
+func _make_arm(side: float, hs: float, g: float, suit_mat, glove_mat) -> Node3D:
 	var pivot := Node3D.new()
 	pivot.position = Vector3(side * 0.42 * g, 0.7 * hs, 0)
 	_torso.add_child(pivot)
-	_part(_cap(0.08, 0.42 * hs), skin_mat, Vector3(0, -0.21 * hs, 0), pivot)   # upper+fore as one
-	_part(_sphere(0.12), glove_mat, Vector3(0, -0.46 * hs, 0), pivot)          # glove
+	_part(_cap(0.085, 0.44 * hs), suit_mat, Vector3(0, -0.22 * hs, 0), pivot)  # sleeve
+	_part(_sphere(0.12), glove_mat, Vector3(0, -0.47 * hs, 0), pivot)          # glove
 	return pivot
 
-func _make_leg(side: float, hs: float, g: float, skin_mat, shorts_mat, shoe_mat) -> Node3D:
+func _make_leg(side: float, hs: float, g: float, suit_mat, shoe_mat) -> Node3D:
 	var pivot := Node3D.new()
 	pivot.position = Vector3(side * 0.17 * g, 0.0, 0)
 	_torso.add_child(pivot)
-	_part(_cap(0.11, 0.5 * hs), shorts_mat, Vector3(0, -0.28 * hs, 0), pivot)  # thigh w/ shorts
-	_part(_cap(0.09, 0.42 * hs), skin_mat, Vector3(0, -0.66 * hs, 0), pivot)   # shin
-	_part(_box(Vector3(0.16, 0.1, 0.3)), shoe_mat, Vector3(0, -0.9 * hs, 0.06), pivot)
+	_part(_cap(0.11, 0.52 * hs), suit_mat, Vector3(0, -0.3 * hs, 0), pivot)    # trouser upper
+	_part(_cap(0.1, 0.44 * hs), suit_mat, Vector3(0, -0.68 * hs, 0), pivot)    # trouser lower
+	_part(_box(Vector3(0.16, 0.1, 0.3)), shoe_mat, Vector3(0, -0.92 * hs, 0.06), pivot)
 	return pivot
 
 # ---------------------------------------------------------------- combat API
@@ -184,6 +225,7 @@ func begin_move(kind: String) -> void:
 	else:
 		state = State.ATTACK
 		move_timer = _attack_dur(kind)
+		emit_signal("swung", kind)
 
 func _attack_dur(kind: String) -> float:
 	match kind:
@@ -198,7 +240,8 @@ func _attack_damage(kind: String) -> float:
 		"jab": base = 5.0
 		"heavy": base = 11.0
 		"special": base = 17.0
-	return base + power * 0.6
+	# 0.6 global scale: stretches a 3-way bout toward the 30-60s target
+	return (base + power * 0.6) * 0.6
 
 func take_hit(dmg: float, _from: Fighter) -> void:
 	if state == State.KO:
@@ -220,6 +263,10 @@ func _knock_out() -> void:
 
 # ---------------------------------------------------------------- loop
 func _physics_process(delta: float) -> void:
+	if frozen:
+		velocity = Vector3.ZERO
+		_animate(delta)
+		return
 	anim_time += delta
 	if cooldown > 0.0:
 		cooldown -= delta

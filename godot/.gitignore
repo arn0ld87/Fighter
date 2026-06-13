@@ -4,3 +4,6 @@
 /build/
 *.translation
 export_presets.cfg.bak
+
+# tooling caches
+.serena/

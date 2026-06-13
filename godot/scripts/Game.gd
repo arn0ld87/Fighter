@@ -4,15 +4,18 @@ extends Node3D
 const FIGHTERS := [
 	{ "id": 1, "name": "Donald Trump", "special": "GIGA MAGA HAYMAKER",
 	  "hp": 110.0, "power": 7.0, "speed": 4.0, "reach": 2.1, "defense": 5.0,
-	  "skin": "ffa254", "shorts": "dc2626", "hair_color": "f5d76e", "hair_style": "swoosh",
+	  "skin": "ffa254", "suit": "16233f", "tie": "d11a2a", "shirt": true, "ref": "trump",
+	  "hair_color": "f5d76e", "hair_style": "swoosh",
 	  "height": 1.9, "girth": 1.05, "spawn": Vector3(-2.5, 0, 1.5) },
 	{ "id": 2, "name": "Vladimir Putin", "special": "KGB TACTICAL TRIP",
 	  "hp": 95.0, "power": 5.0, "speed": 9.0, "reach": 1.8, "defense": 7.0,
-	  "skin": "fed7aa", "shorts": "2563eb", "hair_color": "9ca3af", "hair_style": "cap",
+	  "skin": "fed7aa", "suit": "13151c", "tie": "6e2230", "shirt": true, "ref": "putin",
+	  "hair_color": "9ca3af", "hair_style": "cap",
 	  "height": 1.7, "girth": 0.85, "spawn": Vector3(2.5, 0, 1.5) },
 	{ "id": 3, "name": "Kim Jong Un", "special": "ICBM COLOSSAL SLAM",
 	  "hp": 130.0, "power": 9.0, "speed": 3.0, "reach": 1.7, "defense": 8.0,
-	  "skin": "fef08a", "shorts": "171717", "hair_color": "111111", "hair_style": "bun",
+	  "skin": "fef08a", "suit": "0d0d0f", "tie": "", "shirt": false, "ref": "kim",
+	  "hair_color": "111111", "hair_style": "bun",
 	  "height": 1.7, "girth": 1.5, "spawn": Vector3(0, 0, -2.6) },
 ]
 
@@ -28,9 +31,16 @@ var match_state: String = "intro"   # intro | fight | over
 var intro_timer: float = 2.0
 var winner_name: String = ""
 var _want_shot: bool = false
+var audio                       # Audio.gd instance (sfx + procedural crowd)
+var touch                       # TouchControls.gd instance (iPhone)
+var crowd_excite: float = 0.0   # decays; spikes on hits -> louder crowd
+var _gong_played: bool = false
+var _sim_fight: bool = false    # --simfight: all AI, print duration, quit
+var fight_elapsed: float = 0.0
 
 func _ready() -> void:
 	_want_shot = "--shot" in OS.get_cmdline_user_args()
+	_sim_fight = "--simfight" in OS.get_cmdline_user_args()
 	_setup_input()
 	_build_environment()
 	_build_arena()
@@ -38,12 +48,27 @@ func _ready() -> void:
 	_spawn_fighters()
 	_build_camera()
 	_build_hud()
-	if _want_shot:
-		# representative still: let all fighters be AI so they converge + brawl
+	_build_audio()
+	_build_touch()
+	if _sim_fight:
 		for f in fighters:
 			f.is_player = false
+		player = null
 		match_state = "fight"
 		intro_timer = 0.0
+	if _want_shot:
+		# deterministic portrait: 3 fighters in a row, facing the camera, frozen
+		var xs := [-2.4, 0.0, 2.4]
+		var i := 0
+		for f in fighters:
+			f.is_player = false
+			f.frozen = true
+			f.position = Vector3(xs[i], 0, 0)
+			f.face_yaw = 0.0
+			f.rotation.y = 0.0
+			i += 1
+		match_state = "intro"
+		intro_timer = 999.0
 
 # ----------------------------------------------------------------- input
 func _add_key(action: String, keycode: int) -> void:
@@ -145,18 +170,40 @@ func _build_arena() -> void:
 	ring.position.y = 0.02
 	add_child(ring)
 
-	# glowing ropes (3 rings of posts + bars) — octagon
-	var rope_mat := _mat(Color("ff1e56"), 0.4, 0.2, Color("ff1e56"))
+	# octagon corner posts (padded) + horizontal ropes
+	var post_mat := _mat(Color("c2c5cc"), 0.4, 0.6)          # brushed metal post
+	var rope_mat := _mat(Color("e23a5e"), 0.5, 0.0, Color("e23a5e"))  # subtle red ropes
+	var corners: Array[Vector3] = []
 	for i in range(8):
 		var a := TAU * float(i) / 8.0
 		var px := sin(a) * RING_RADIUS
 		var pz := cos(a) * RING_RADIUS
+		corners.append(Vector3(px, 0, pz))
 		var post := MeshInstance3D.new()
-		var pm := CylinderMesh.new(); pm.top_radius = 0.08; pm.bottom_radius = 0.08; pm.height = 1.5
+		var pm := CylinderMesh.new(); pm.top_radius = 0.07; pm.bottom_radius = 0.07; pm.height = 1.3
 		post.mesh = pm
-		post.material_override = rope_mat
-		post.position = Vector3(px, 0.75, pz)
+		post.material_override = post_mat
+		post.position = Vector3(px, 0.65, pz)
 		add_child(post)
+	# three rope heights strung between adjacent corners
+	for h in [0.45, 0.8, 1.15]:
+		for i in range(8):
+			var p0: Vector3 = corners[i]
+			var p1: Vector3 = corners[(i + 1) % 8]
+			var mid := (p0 + p1) * 0.5
+			mid.y = h
+			var seg := MeshInstance3D.new()
+			var sm := CylinderMesh.new()
+			sm.top_radius = 0.025; sm.bottom_radius = 0.025
+			sm.height = p0.distance_to(p1)
+			seg.mesh = sm
+			seg.material_override = rope_mat
+			# orient the cylinder's local Y (its length axis) along the rope
+			var dir := (p1 - p0).normalized()
+			var x_axis := Vector3.UP.cross(dir).normalized()
+			var z_axis := x_axis.cross(dir).normalized()
+			seg.transform = Transform3D(Basis(x_axis, dir, z_axis), mid)
+			add_child(seg)
 
 func _build_crowd() -> void:
 	# tiered stands of spectators around the ring (addresses "no spectators")
@@ -187,11 +234,13 @@ func _build_crowd() -> void:
 		mmi.multimesh = mm
 		mmi.material_override = _mat(Color(1, 1, 1), 0.9)
 		add_child(mmi)
-		# tier riser
+		# tier riser: a FLAT RING under the seats — must never cover the arena center
 		var riser := MeshInstance3D.new()
-		var rc := CylinderMesh.new()
-		rc.top_radius = float(tier["r"]) + 0.6; rc.bottom_radius = float(tier["r"]) + 0.6
-		rc.height = 0.4; rc.radial_segments = 32
+		var rc := TorusMesh.new()
+		rc.inner_radius = float(tier["r"]) - 0.5
+		rc.outer_radius = float(tier["r"]) + 0.9
+		rc.rings = 48
+		rc.ring_segments = 8
 		riser.mesh = rc
 		riser.material_override = _mat(Color("0d0f17"), 0.95)
 		riser.position.y = float(tier["h"]) - 0.5
@@ -206,6 +255,7 @@ func _spawn_fighters() -> void:
 		add_child(f)
 		f.landed_hit.connect(_on_landed_hit)
 		f.ko.connect(_on_ko)
+		f.swung.connect(_on_swing)
 		fighters.append(f)
 		if f.is_player:
 			player = f
@@ -223,6 +273,19 @@ func _build_hud() -> void:
 	add_child(hud)
 	hud.setup(fighters, player)
 
+func _build_audio() -> void:
+	var AudioScript := load("res://scripts/Audio.gd")
+	audio = AudioScript.new()
+	add_child(audio)
+	if not _want_shot:
+		audio.start_crowd()
+		audio.set_crowd(0.2)
+
+func _build_touch() -> void:
+	var TouchScript := load("res://scripts/TouchControls.gd")
+	touch = TouchScript.new()
+	add_child(touch)
+
 # ----------------------------------------------------------------- loop
 func _process(delta: float) -> void:
 	if _want_shot and Engine.get_frames_drawn() == 240:
@@ -235,6 +298,7 @@ func _process(delta: float) -> void:
 		f.can_attack = fighting
 	if hud:
 		hud.refresh(fighters, match_state, winner_name)
+	_update_crowd(delta)
 
 	if Input.is_action_just_pressed("ttf_restart"):
 		_restart()
@@ -244,7 +308,11 @@ func _process(delta: float) -> void:
 			intro_timer -= delta
 			if intro_timer <= 0.0:
 				match_state = "fight"
+				if audio and not _gong_played:
+					audio.play_gong()
+					_gong_played = true
 		"fight":
+			fight_elapsed += delta
 			if player and player.state != Fighter.State.KO:
 				if Input.is_action_just_pressed("ttf_jab"): player.begin_move("jab")
 				elif Input.is_action_just_pressed("ttf_heavy"): player.begin_move("heavy")
@@ -282,8 +350,13 @@ func _check_win() -> void:
 	if alive.size() <= 1:
 		match_state = "over"
 		winner_name = alive[0].fighter_name if alive.size() == 1 else "Unentschieden"
+		if _sim_fight:
+			print("FIGHT_OVER winner=", winner_name, " elapsed=", "%.1f" % fight_elapsed)
+			get_tree().quit()
 
 func _restart() -> void:
+	if audio:
+		audio.play_ui()
 	get_tree().reload_current_scene()
 
 # ----------------------------------------------------------------- feel
@@ -292,9 +365,29 @@ func _on_landed_hit(_attacker, victim, damage: float, is_special: bool) -> void:
 	hitstop = 0.06 if not is_special else 0.13
 	if hud:
 		hud.flash_hit(victim.fighter_name, damage, is_special)
+	if audio:
+		audio.play_hit(is_special)
+	crowd_excite = minf(1.0, crowd_excite + (0.55 if is_special else 0.3))
 
 func _on_ko(_who) -> void:
 	shake = maxf(shake, 0.7)
+	crowd_excite = 1.0
+	if audio:
+		audio.play_buzzer()
+
+func _on_swing(_kind) -> void:
+	if audio:
+		audio.play_whoosh()
+
+func _update_crowd(delta: float) -> void:
+	if not audio or _want_shot:
+		return
+	crowd_excite = maxf(0.0, crowd_excite - delta * 0.55)
+	var base := 0.2
+	match match_state:
+		"fight": base = 0.5
+		"over": base = 0.7
+	audio.set_crowd(base + crowd_excite * 0.45)
 
 func _update_camera(delta: float) -> void:
 	if hitstop > 0.0:
@@ -313,10 +406,14 @@ func _update_camera(delta: float) -> void:
 		c /= alive.size()
 		c.y = 1.0
 
-	# ONE simple broadcast camera: follow the centre at a fixed offset.
-	var desired := c + Vector3(0, 2.0, 5.2)
+	# ONE simple broadcast camera: frame all fighters, distance scales with spread.
+	var spread := 0.0
+	for f in alive:
+		spread = maxf(spread, (f.global_position - c).length())
+	var dist := clampf(4.6 + spread * 1.25, 5.0, 9.5)
+	var desired := c + Vector3(0, dist * 0.42, dist)
 	camera.position = camera.position.lerp(desired, clampf(delta * 3.0, 0, 1))
-	var look := c + Vector3(0, 0.5, 0)
+	var look := c + Vector3(0, 1.1, 0)
 	if shake > 0.001:
 		look += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.3
 		shake *= pow(0.85, delta * 60.0)

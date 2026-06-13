@@ -158,7 +158,7 @@ Legende: ⬜ offen · 🟡 in Arbeit · ✅ fertig · ⚠️ blockiert/Risiko
 | P6 | `vite build` grün | ✅ | 1700 Module, 897 KB (three.js) |
 | P6 | Laufzeit-Check | ✅ | Headless-Chromium: Canvas 906×460, WebGL aktiv, **0 Konsolenfehler**, Render bestätigt |
 | P7 | README/Roadmap-Update | ✅ | Engine/Audio/Struktur/Roadmap aktualisiert |
-| P7 | Commit + PR | 🟡 | finaler Commit + PR in Arbeit |
+| P7 | Commit + PR | ✅ | gepusht; PR #1 → https://github.com/arn0ld87/Fighter/pull/1 |
 
 ---
 

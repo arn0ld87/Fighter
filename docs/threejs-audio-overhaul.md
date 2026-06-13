@@ -139,24 +139,24 @@ Legende: ⬜ offen · 🟡 in Arbeit · ✅ fertig · ⚠️ blockiert/Risiko
 | P0 | Living-Doc (dieses Dokument) | ✅ | initial |
 | P0 | Deps installieren (three, howler, types) | ✅ | three@0.184, howler@2.2.4 |
 | P0 | `engine/types.ts` Render-Kontrakt | ✅ | THEMES, RenderState, SceneModule, CameraRig, WORLD |
-| P0 | Feature-Flag-Gerüst | 🟡 | im Wrapper (P4) |
-| P1 | CC0-Asset-Recherche | ⬜ | Subagent (Haiku), best-effort |
-| P1 | `scripts/fetch-audio.mjs` + Download | ⬜ | ⚠️ curl/wget geblockt → Node fetch; **Synthese ist Primärpfad** |
-| P2 | `synth.ts` (prozedurale Web-Audio-SFX) | ⬜ | Subagent — Primärpfad |
-| P2 | `SoundManager.ts` (Howler + Synth-Fallback) | ⬜ | Subagent |
-| P3 | `Arena.ts` | ⬜ | Subagent |
-| P3 | `Lighting.ts` | ⬜ | Subagent |
-| P3 | `FighterRig.ts` | ⬜ | Subagent |
-| P3 | `Particles.ts` | ⬜ | Subagent |
-| P3 | `CameraDirector.ts` | ⬜ | Subagent |
-| P4 | `Renderer.ts` | ⬜ | Orchestrator |
-| P4 | `StadiumCanvas.tsx` Wrapper | ⬜ | Orchestrator |
-| P5 | App.tsx Event→Sound | ⬜ | |
-| P5 | ControlDashboard Volume-Mixer | ⬜ | |
-| P5 | Feature-Flag verdrahtet | ⬜ | |
-| P6 | `tsc --noEmit` grün | ⬜ | |
-| P6 | `vite build` grün | ⬜ | |
-| P6 | Laufzeit-Check | ⬜ | |
+| P0 | Feature-Flag-Gerüst | ✅ | `VITE_RENDERER=canvas` schaltet auf Legacy |
+| P1 | CC0-Asset-Recherche | ✅ | Haiku-Manifest (OpenGameArt); ⚠️ Semantik fragwürdig → optional |
+| P1 | `scripts/fetch-audio.mjs` + Download | 🟡 | **Synthese ist Primärpfad**; Download best-effort/optional |
+| P2 | `synth.ts` (prozedurale Web-Audio-SFX) | ✅ | Subagent (sonnet), ~290 Z. |
+| P2 | `SoundManager.ts` (Howler + Synth-Fallback) | ✅ | Subagent + API-Reconcile |
+| P3 | `Arena.ts` | ✅ | Subagent, ~195 Z. |
+| P3 | `Lighting.ts` | ✅ | Subagent, ~145 Z. |
+| P3 | `FighterRig.ts` | ✅ | Subagent, ~320 Z. + buildLeg-Fix |
+| P3 | `Particles.ts` | ✅ | Subagent, ~110 Z. |
+| P3 | `CameraDirector.ts` | ✅ | Subagent, ~165 Z. |
+| P4 | `Renderer.ts` | ✅ | Orchestrator — Bloom/Shadows/Composer |
+| P4 | `StadiumCanvasThree.tsx` Wrapper | ✅ | Orchestrator — RAF, Partikel-Sim, Overlay |
+| P5 | App.tsx Event→Sound | ✅ | Event-/KO-Effekte, Crowd-Decay, Gong |
+| P5 | ControlDashboard Volume-Mixer | ✅ | Audio-Tab + UI-Klicks |
+| P5 | Feature-Flag verdrahtet | ✅ | `USE_THREE` in App.tsx |
+| P6 | `tsc --noEmit` grün | ✅ | |
+| P6 | `vite build` grün | ✅ | 1700 Module, 897 KB (three.js) |
+| P6 | Laufzeit-Check | 🟡 | Headless-Browser-Screenshot folgt |
 | P7 | README/Roadmap-Update | ⬜ | |
 | P7 | Commit + PR | ⬜ | |
 

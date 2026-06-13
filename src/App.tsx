@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Fighter, CombatMoveType, FightEvent, Particle3D, CameraMode, Vector3D } from "./types";
 import { StadiumCanvas } from "./components/StadiumCanvas";
+import { StadiumCanvasThree } from "./components/StadiumCanvasThree";
+import { SoundManager } from "./audio/SoundManager";
 import { FighterStats } from "./components/FighterStats";
 import { ControlDashboard } from "./components/ControlDashboard";
 import { CommentaryFeed } from "./components/CommentaryFeed";
@@ -113,6 +115,14 @@ const INITIAL_FIGHTERS: Fighter[] = [
   }
 ];
 
+// Renderer selection: WebGL by default, legacy 2D canvas via VITE_RENDERER=canvas.
+const USE_THREE = ((import.meta as unknown as { env?: Record<string, string> }).env?.VITE_RENDERER) !== "canvas";
+const NAME_TO_ID: Record<string, number> = {
+  "Donald Trump": 1,
+  "Vladimir Putin": 2,
+  "Kim Jong Un": 3,
+};
+
 export default function App() {
   const [fighters, setFighters] = useState<Fighter[]>(INITIAL_FIGHTERS);
   const [cameraMode, setCameraMode] = useState<CameraMode>("CINEMATIC_FOLLOW");
@@ -138,6 +148,15 @@ export default function App() {
   const commentaryInputQueue = useRef<string[]>([]);
   const lastAiCommentaryTick = useRef(0);
 
+  // Audio subsystem (lazy singleton; AudioContext is created on first gesture).
+  const soundRef = useRef<SoundManager | null>(null);
+  if (soundRef.current === null && typeof window !== "undefined") {
+    soundRef.current = new SoundManager();
+  }
+  const lastSoundEventId = useRef<string | null>(null);
+  const koSet = useRef<Set<number>>(new Set());
+  const crowdTarget = useRef(0.1);
+
   const resetSimulation = () => {
     setFighters(INITIAL_FIGHTERS.map(f => ({ ...f, hp: f.maxHp, isKnoctout: false, currentMove: "IDLE", moveProgress: 0 })));
     setEvents([]);
@@ -147,7 +166,78 @@ export default function App() {
     setGameTick(0);
     lastAiCommentaryTick.current = 0;
     commentaryInputQueue.current = [];
+    koSet.current.clear();
+    soundRef.current?.init();
+    soundRef.current?.playGong();
   };
+
+  // ─── Audio wiring ──────────────────────────────────────────────────────────
+  // Unlock the AudioContext on the first user gesture (browser autoplay policy).
+  useEffect(() => {
+    const unlock = () => soundRef.current?.init();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  // New fight events → sound effects + crowd reaction.
+  useEffect(() => {
+    const s = soundRef.current;
+    if (!s || events.length === 0) return;
+    let startIdx = events.length - 1;
+    if (lastSoundEventId.current) {
+      const idx = events.findIndex((e) => e.id === lastSoundEventId.current);
+      if (idx >= 0) startIdx = idx + 1;
+    }
+    for (let i = startIdx; i < events.length; i++) {
+      const ev = events[i];
+      switch (ev.type) {
+        case "BLOCK": s.playBlock(); break;
+        case "DODGE": s.playWhoosh(); break;
+        case "JAB":
+        case "HAYMAKER":
+        case "JUDO_SWEEP":
+        case "SUMO_SLAM":
+          s.playWhoosh();
+          if (ev.damage > 0) s.playHit(ev.damage, ev.isSpecial);
+          if (ev.isSpecial) s.playSignature(NAME_TO_ID[ev.fighterName] ?? 0);
+          break;
+        default: break;
+      }
+      const bump = Math.min(1, ev.damage / 25) * 0.6 + (ev.isSpecial ? 0.4 : 0.1);
+      crowdTarget.current = Math.min(1, crowdTarget.current + bump);
+    }
+    lastSoundEventId.current = events[events.length - 1].id;
+  }, [events]);
+
+  // Crowd ambience decays toward a baseline between bursts of action.
+  useEffect(() => {
+    const s = soundRef.current;
+    if (!s) return;
+    const id = window.setInterval(() => {
+      crowdTarget.current = Math.max(0.08, crowdTarget.current * 0.9);
+      s.setCrowdIntensity(crowdTarget.current);
+    }, 200);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Knockouts → buzzer + crowd roar.
+  useEffect(() => {
+    const s = soundRef.current;
+    if (!s) return;
+    for (const f of fighters) {
+      if (f.isKnoctout && !koSet.current.has(f.id)) {
+        koSet.current.add(f.id);
+        s.playBuzzer();
+        crowdTarget.current = 1;
+      } else if (!f.isKnoctout && koSet.current.has(f.id)) {
+        koSet.current.delete(f.id);
+      }
+    }
+  }, [fighters]);
 
   // Listen to document key triggers for the walking overlord joystick
   useEffect(() => {
@@ -650,22 +740,37 @@ export default function App() {
           
           {/* Broadcaster Viewport panel */}
           <div className="lg:col-span-3 h-[280px] sm:h-[420px] md:h-[460px] flex flex-col justify-between">
-            <StadiumCanvas 
-              fighters={fighters}
-              cameraMode={cameraMode}
-              particles={particles}
-              setParticles={setParticles}
-              isSlowMotion={isSlowMotion}
-              arenaTheme={arenaTheme}
-              impactLocation={impactLocation}
-              clearImpact={() => setImpactLocation(null)}
-              gameTick={gameTick}
-            />
+            {USE_THREE ? (
+              <StadiumCanvasThree
+                fighters={fighters}
+                cameraMode={cameraMode}
+                particles={particles}
+                setParticles={setParticles}
+                isSlowMotion={isSlowMotion}
+                arenaTheme={arenaTheme}
+                impactLocation={impactLocation}
+                clearImpact={() => setImpactLocation(null)}
+                gameTick={gameTick}
+              />
+            ) : (
+              <StadiumCanvas
+                fighters={fighters}
+                cameraMode={cameraMode}
+                particles={particles}
+                setParticles={setParticles}
+                isSlowMotion={isSlowMotion}
+                arenaTheme={arenaTheme}
+                impactLocation={impactLocation}
+                clearImpact={() => setImpactLocation(null)}
+                gameTick={gameTick}
+              />
+            )}
           </div>
 
           {/* Quick Combat Controls sidebar */}
           <div className="lg:col-span-1 h-full flex flex-col justify-between">
             <ControlDashboard
+              sound={soundRef.current}
               isSimulating={isSimulating}
               setIsSimulating={setIsSimulating}
               cameraMode={cameraMode}

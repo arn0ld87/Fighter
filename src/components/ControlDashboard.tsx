@@ -13,10 +13,14 @@ import {
   Clock, 
   Compass, 
   Film,
-  Send
+  Send,
+  Volume2,
+  Music
 } from "lucide-react";
+import type { SoundManager } from "../audio/SoundManager";
 
 interface ControlDashboardProps {
+  sound: SoundManager | null;
   isSimulating: boolean;
   setIsSimulating: (b: boolean) => void;
   cameraMode: CameraMode;
@@ -33,6 +37,7 @@ interface ControlDashboardProps {
 }
 
 export const ControlDashboard: React.FC<ControlDashboardProps> = ({
+  sound,
   isSimulating,
   setIsSimulating,
   cameraMode,
@@ -47,7 +52,27 @@ export const ControlDashboard: React.FC<ControlDashboardProps> = ({
   triggerChoreographedMoves,
   resetSimulation
 }) => {
-  const [activeTab, setActiveTab] = useState<"camera" | "manual" | "choreography" | "themes">("camera");
+  const [activeTab, setActiveTab] = useState<"camera" | "manual" | "choreography" | "themes" | "audio">("camera");
+
+  // Audio mixer UI state (mirrors the SoundManager's persisted volumes).
+  const [vol, setVol] = useState(() => ({
+    master: sound?.getVolume("master") ?? 0.8,
+    sfx: sound?.getVolume("sfx") ?? 0.9,
+    crowd: sound?.getVolume("crowd") ?? 0.5,
+    music: sound?.getVolume("music") ?? 0.3,
+  }));
+  const [musicOn, setMusicOn] = useState(false);
+  const setBusVolume = (bus: "master" | "sfx" | "crowd" | "music", value: number) => {
+    sound?.init();
+    sound?.setVolume(bus, value);
+    setVol((v) => ({ ...v, [bus]: value }));
+  };
+  const toggleMusic = () => {
+    if (!sound) return;
+    sound.init();
+    if (musicOn) { sound.stopMusic(); setMusicOn(false); }
+    else { sound.startMusic(); setMusicOn(true); }
+  };
   
   // Custom script timeline orchestrator state
   const [steps, setSteps] = useState([
@@ -74,14 +99,21 @@ export const ControlDashboard: React.FC<ControlDashboardProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md" id="arena-controllers">
+    <div
+      className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md"
+      id="arena-controllers"
+      onClickCapture={(e) => {
+        if ((e.target as HTMLElement).closest("button")) sound?.playUi();
+      }}
+    >
       {/* Control Pane Tabs */}
       <div className="flex border-b border-slate-800 bg-slate-950/80 p-1">
         {[
           { id: "camera", label: "Cams & Feeds", icon: Video },
           { id: "manual", label: "Fighter Controls", icon: Compass },
           { id: "choreography", label: "Fight Directing", icon: Film },
-          { id: "themes", label: "Arena Setup", icon: Map }
+          { id: "themes", label: "Arena Setup", icon: Map },
+          { id: "audio", label: "Audio Mixer", icon: Volume2 }
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -171,6 +203,48 @@ export const ControlDashboard: React.FC<ControlDashboardProps> = ({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* TAB: Audio Broadcast Mixer */}
+        {activeTab === "audio" && (
+          <div className="space-y-3 animate-fade-in font-mono text-xs">
+            <p className="text-zinc-400 leading-normal mb-1">
+              Broadcast audio mix. Combat sounds are synthesized live via Web Audio — crowd swells with the action.
+            </p>
+            {([
+              { bus: "master", label: "Master", icon: Volume2 },
+              { bus: "sfx", label: "Combat SFX", icon: Zap },
+              { bus: "crowd", label: "Crowd", icon: Sparkles },
+              { bus: "music", label: "Music", icon: Music },
+            ] as const).map(({ bus, label, icon: Icon }) => (
+              <div key={bus} className="flex items-center gap-3">
+                <span className="w-24 flex items-center gap-1.5 text-zinc-300">
+                  <Icon size={13} className="text-amber-400" />
+                  {label}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={vol[bus]}
+                  onChange={(e) => setBusVolume(bus, parseFloat(e.target.value))}
+                  className="flex-1 accent-amber-400"
+                />
+                <span className="w-9 text-right text-zinc-500">{Math.round(vol[bus] * 100)}</span>
+              </div>
+            ))}
+            <button
+              onClick={toggleMusic}
+              className={`mt-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${
+                musicOn
+                  ? "bg-amber-400 text-slate-950 border-amber-400"
+                  : "bg-slate-950/30 text-zinc-300 border-slate-800 hover:border-slate-700"
+              }`}
+            >
+              <Music size={13} /> {musicOn ? "MUSIC: ON" : "MUSIC: OFF"}
+            </button>
           </div>
         )}
 

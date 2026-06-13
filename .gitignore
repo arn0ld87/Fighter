@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# stray dev artifacts — the Godot game uses godot/assets/refs/, not public/
+public/_shots/
+public/trump.jpg
+public/putin.jpg
+public/kim.jpg
+public/trump_face.png
+public/putin_face.png
+public/kim_face.png
